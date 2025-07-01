@@ -1,71 +1,137 @@
-import csv
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Question Parser</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+      background: #f9f9f9;
+    }
+    h1 {
+      text-align: center;
+    }
+    #fileInput {
+      margin-bottom: 20px;
+    }
+    .question-container {
+      border: 1px solid #ccc;
+      padding: 15px;
+      margin-bottom: 20px;
+      background: #fff;
+    }
+    .question-title {
+      font-weight: bold;
+      margin-bottom: 10px;
+    }
+    .options ul {
+      list-style-type: none;
+      padding-left: 0;
+    }
+    .options li {
+      margin-bottom: 5px;
+    }
+    .correct-answer {
+      margin-top: 10px;
+      color: green;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+  <h1>HS&E Quiz Question Parser</h1>
+  <input type="file" id="fileInput" accept=".txt" />
+  <div id="output"></div>
 
-def parse_questions(text):
-    questions = []
-    lines = text.split('\n')
-    i = 0
+  <script>
+    document.getElementById('fileInput').addEventListener('change', function(event) {
+      const file = event.target.files[0];
+      if (!file) return;
 
-    while i < len(lines):
-        line = lines[i].strip()
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const content = e.target.result;
+        const questions = parseQuestions(content);
+        displayQuestions(questions);
+      };
+      reader.readAsText(file);
+    });
 
-        if line.startswith("Question"):
-            question = ""
-            options = ["", "", "", ""]
-            correct_answer = ""
+    function parseQuestions(text) {
+      const lines = text.split('\n');
+      const questions = [];
+      let currentQuestion = null;
 
-            # Extract the question
-            question_line = line.replace("Question", "").strip()
-            question = question_line
+      for (let line of lines) {
+        line = line.trim();
 
-            # Get the options
-            for j in range(4):
-                i += 1
-                if i >= len(lines):
-                    break
-                option_line = lines[i].strip()
-                if option_line.startswith("A)") or option_line.startswith("B)") or option_line.startswith("C)") or option_line.startswith("D)"):
-                    option_text = option_line.split(")", 1)[1].strip()
-                    options[j] = option_text
+        // Check if it's a question line
+        if (line.startsWith("Question")) {
+          if (currentQuestion) {
+            questions.push(currentQuestion);
+          }
+          currentQuestion = {
+            question: "",
+            options: [],
+            correctAnswer: ""
+          };
 
-            # Get the correct answer
-            i += 1
-            if i < len(lines):
-                answer_line = lines[i].strip()
-                if answer_line.startswith("The correct answer is "):
-                    correct_answer = answer_line.split("is ")[1].strip().upper()
+          // Extract question text
+          currentQuestion.question = line.replace("Question", "").trim();
+        }
 
-            # Add to the list
-            questions.append({
-                "Question": question,
-                "Option A": options[0],
-                "Option B": options[1],
-                "Option C": options[2],
-                "Option D": options[3],
-                "Correct Answer": correct_answer
-            })
+        // Check for options A, B, C, D, etc.
+        else if (line.startsWith("A)") || line.startsWith("B)") || line.startsWith("C)") || line.startsWith("D)")) {
+          const optionText = line.replace(/^[A-D]\)/, "").trim();
+          currentQuestion.options.push(optionText);
+        }
 
-        i += 1
+        // Check for correct answer
+        else if (line.startsWith("The correct answer is ")) {
+          const answer = line.replace("The correct answer is ", "").trim().toUpperCase();
+          currentQuestion.correctAnswer = answer;
+        }
+      }
 
-    return questions
+      if (currentQuestion) {
+        questions.push(currentQuestion);
+      }
 
-def save_to_csv(questions, filename):
-    with open(filename, 'w', newline='', encoding='utf-8') as csvfile:
-        fieldnames = ['Question', 'Option A', 'Option B', 'Option C', 'Option D', 'Correct Answer']
-        writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
-        writer.writeheader()
-        for q in questions:
-            writer.writerow(q)
+      return questions;
+    }
 
-# Main execution
-if __name__ == "__main__":
-    # Replace this with your actual file path
-    file_path = "Pasted_Text_1751377301371.txt"
-    output_file = "output.csv"
+    function displayQuestions(questions) {
+      const outputDiv = document.getElementById('output');
+      outputDiv.innerHTML = "";
 
-    with open(file_path, 'r', encoding='utf-8') as f:
-        text = f.read()
+      questions.forEach((q, index) => {
+        const container = document.createElement('div');
+        container.className = 'question-container';
 
-    questions = parse_questions(text)
-    save_to_csv(questions, output_file)
+        const title = document.createElement('div');
+        title.className = 'question-title';
+        title.textContent = `Question ${index + 1}: ${q.question}`;
+        container.appendChild(title);
 
-    print(f"Questions have been saved to {output_file}")
+        const optionsList = document.createElement('div');
+        optionsList.className = 'options';
+
+        q.options.forEach((option, i) => {
+          const li = document.createElement('li');
+          li.textContent = `${String.fromCharCode(65 + i)}) ${option}`;
+          optionsList.appendChild(li);
+        });
+
+        container.appendChild(optionsList);
+
+        const correct = document.createElement('div');
+        correct.className = 'correct-answer';
+        correct.textContent = `Correct Answer: ${q.correctAnswer}`;
+        container.appendChild(correct);
+
+        outputDiv.appendChild(container);
+      });
+    }
+  </script>
+</body>
